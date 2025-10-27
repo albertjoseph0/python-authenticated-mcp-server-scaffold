@@ -10,12 +10,8 @@ const envSchema = z.object({
   RESOURCE_SERVER_URL: z.string().url().optional(),
   AUTH0_ISSUER: z.string().url(),
   JWT_AUDIENCES: z.string().optional(),
-  REQUIRED_SCOPES: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
-  VECTOR_STORE_ID: z.string().optional(),
-  TREND_DATA_DIR: z.string().optional(),
-  OAUTH_ALLOWED_CLIENTS: z.string().optional(),
-  SERVICE_DOCUMENTATION_URL: z.string().optional()
+  VECTOR_STORE_ID: z.string().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -43,9 +39,7 @@ const defaultTrendDataDir = resolve(
   'web_search_trends'
 );
 
-const trendDataDir = raw.TREND_DATA_DIR ? resolve(raw.TREND_DATA_DIR) : defaultTrendDataDir;
-
-const requiredScopes: string[] = [];
+const resourceServerUrl = raw.RESOURCE_SERVER_URL ?? `http://localhost:${port}`;
 
 const expectedAudiences = (raw.JWT_AUDIENCES ?? '')
   .split(',')
@@ -53,44 +47,8 @@ const expectedAudiences = (raw.JWT_AUDIENCES ?? '')
   .filter(item => item.length > 0);
 
 if (expectedAudiences.length === 0) {
-  expectedAudiences.push(`${raw.RESOURCE_SERVER_URL ?? `http://localhost:${port}`}`);
+  expectedAudiences.push(resourceServerUrl);
 }
-
-function parseAllowedClients(value: string | undefined) {
-  if (!value) {
-    return new Map<string, { redirectUris: string[] }>();
-  }
-
-  const entries = value
-    .split(';')
-    .map(entry => entry.trim())
-    .filter(entry => entry.length > 0);
-
-  const map = new Map<string, { redirectUris: string[] }>();
-
-  for (const entry of entries) {
-    const [clientId, redirectUriList] = entry.split('|').map(part => part?.trim() ?? '');
-    if (!clientId || !redirectUriList) {
-      throw new Error(`Invalid OAUTH_ALLOWED_CLIENTS entry: "${entry}". Expected format clientId|https://redirect-a,https://redirect-b`);
-    }
-    const redirectUris = redirectUriList
-      .split(',')
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-    if (redirectUris.length === 0) {
-      throw new Error(`OAUTH_ALLOWED_CLIENTS entry for client "${clientId}" must include at least one redirect URI`);
-    }
-    map.set(clientId, { redirectUris });
-  }
-
-  return map;
-}
-
-const allowedOAuthClients = parseAllowedClients(raw.OAUTH_ALLOWED_CLIENTS);
-
-const resourceServerUrl = raw.RESOURCE_SERVER_URL ?? `http://localhost:${port}`;
-
-const serviceDocumentationUrl = raw.SERVICE_DOCUMENTATION_URL ? new URL(raw.SERVICE_DOCUMENTATION_URL) : undefined;
 
 export const config = {
   port,
@@ -98,11 +56,8 @@ export const config = {
   resourceServerUrl: new URL(resourceServerUrl),
   openAiApiKey: raw.OPENAI_API_KEY,
   vectorStoreId: raw.VECTOR_STORE_ID,
-  trendDataDir,
-  requiredScopes,
-  expectedAudiences,
-  allowedOAuthClients,
-  serviceDocumentationUrl
+  trendDataDir: defaultTrendDataDir,
+  expectedAudiences
 };
 
 export type AppConfig = typeof config;

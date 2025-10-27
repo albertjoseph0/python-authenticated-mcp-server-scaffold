@@ -1,10 +1,10 @@
 # Python Authenticated MCP Server Scaffold
 
-This project is a reference implementation of an authenticated [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server written in Python. It demonstrates how to broker access to multiple proprietary data sources while exposing them to ChatGPT (or any MCP-capable client) through well-defined tools.
+This is a reference implementation of an authenticated [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server written in Python. It demonstrates how to expose multiple proprietary data sources to ChatGPT (or any MCP-capable client) through well-defined tools.
 
 The scaffold includes two families of tools you can use as-is or replace with custom integrations:
 
-- **Vector Store Transcript Tools (`search`, `fetch`)** – index and retrieve travel-industry expert-call transcripts from an OpenAI Vector Store. These two tools satisfy the requirements for ChatGPT’s Deep Research workflow.
+- **Vector Store Transcript Tools (`search`, `fetch`)** – retrieve documents (in our example, travel-industry expert-call transcripts) from an OpenAI Vector Store. These two tools satisfy the requirements for ChatGPT’s Deep Research workflow.
 - **Airfare Trend Tool (`airfare_trend_insights`)** – surface structured airfare pricing and demand data backed by local CSV/TSV/JSON files.
 
 You can swap these example data sources for your own by updating the tool implementations in `server/app.py`.
@@ -15,7 +15,7 @@ You can swap these example data sources for your own by updating the tool implem
 
 - Python 3.10+
 - An Auth0 tenant (or any OAuth 2.1 provider with OIDC discovery)
-- An OpenAI API key and vector store containing your documents
+- An OpenAI API key
 - Optional: [ngrok](https://ngrok.com/) (or similar) for tunneling
 
 ---
@@ -23,8 +23,8 @@ You can swap these example data sources for your own by updating the tool implem
 ## 1. Install & bootstrap
 
 ```bash
-git clone https://github.com/openai/mcp-in-a-box.git
-cd mcp-in-a-box/python-authenticated-mcp-server-scaffold
+git clone https://github.com/openai/mcpkit
+cd mcpkit/python-authenticated-mcp-server-scaffold
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -37,19 +37,20 @@ pip install -r requirements.txt
 > The scaffold expects OAuth 2.1 bearer tokens issued by Auth0. Substitute your own IdP if you prefer, but keep the same environment variable names.
 
 1. **Create an API**  
-   - Auth0 Dashboard → *APIs* → *Create API*  
+   - Auth0 Dashboard → *Applications* → *APIs* → *Create API*  
    - Name it (e.g., `mcp-python-server`)  
-   - Identifier → `https://your-domain.example.com/mcp` (this becomes the `AUTH0_AUDIENCE`)
-   - Enable “RBAC” and “Add Permissions in the Access Token”
-   - Add a permission named `user` (required scope)
+   - Identifier → `https://your-domain.example.com/mcp` (add this to your `JWT_AUDIENCES` environment variable)
+   - (JWT) Profile → Auth0
 
-2. **Create a Machine-to-Machine (M2M) application**  
-   - Auth0 Dashboard → *Applications* → *Create Application* → Machine-to-Machine  
-   - Authorize it to call the API you created and grant the `user` permission
-   - Note the **Client ID** and **Client Secret** (used by clients that will obtain tokens)
+2. **Enable a default audience for your tenant** (per [this community post](https://community.auth0.com/t/rfc-8707-implementation-audience-vs-resource/188990/4)) so that Auth0 issues an unencrypted RS256 JWT.
+   - Tenant settings > Default Audience > Add the API identifier you created in step 1.
 
-3. **Issuer URL**  
-   - Your tenant domain (e.g., `https://dev-your-tenant.us.auth0.com/`) is the `AUTH0_ISSUER`
+3. **Add a social connection to the tenant** for example Google oauth2 to provide a social login mechanism for uers.
+   - Authentication > Social > google-oauth2 > Advanced > Promote Connection to Domain Level
+
+3. **Update your environment variables**  
+   - `AUTH0_ISSUER`:  your tenant domain (e.g., `https://dev-your-tenant.us.auth0.com/`)
+   - `JWT_AUDIENCES`: API identifider created in step 1 (e.g. `https://mcpkit.com/mcp`)
 
 ---
 
@@ -67,12 +68,11 @@ cp .env.example .env
 OPENAI_API_KEY=sk-...
 VECTOR_STORE_ID=vs_123...
 
-AUTH0_ISSUER=https://dev-your-tenant.us.auth0.com/
-AUTH0_AUDIENCE=https://your-domain.example.com/mcp
-REQUIRED_SCOPES=user
+AUTH0_ISSUER=
 
 PORT=8788
-RESOURCE_SERVER_URL=http://localhost:8788
+RESOURCE_SERVER_URL=
+JWT_AUDIENCES=
 ```
 
 ### Additional settings (production deployment)
@@ -86,7 +86,7 @@ TREND_DATA_DIR=/app/data/web_search_trends
 EXPERT_CALLS_DIR=/app/data/expert_calls
 ```
 
-Set these variables with your hosting provider (Render, Fly.io, etc.). For production you’ll also want to rotate `OPENAI_API_KEY`, `AUTH0_CLIENT_SECRET`, and any other sensitive values via your platform’s secret manager.
+Set these variables with your hosting provider (Render, Fly.io, etc.).
 
 ---
 
@@ -124,7 +124,7 @@ To add or modify tools, edit `server/app.py`. You can either extend the existing
 
 ## 6. Token verification
 
-Authenticated MCP servers must supply a `TokenVerifier` implementation. Subclass `mcp.server.auth.provider.TokenVerifier`, implement `verify_token`, and return an `AccessToken` object when the incoming bearer token is valid. This scaffold ships with several examples in `server/token_verifiers.py`; the `JWTVerifier` class shows how to:
+Authenticated MCP servers must supply a `TokenVerifier` implementation. To do this, subclass `mcp.server.auth.provider.TokenVerifier`, implement `verify_token`, and return an `AccessToken` object when the incoming bearer token is valid. This scaffold ships with several examples in `server/token_verifiers.py`; in particular, the `JWTVerifier` class shows how to:
 
 - Fetch signing keys from a JWKS URI
 - Decode RS256 tokens using [PyJWT](https://pyjwt.readthedocs.io/en/stable/) and enforce issuer/audience checks (configure audiences via `JWT_AUDIENCES` in `.env`)
@@ -149,7 +149,7 @@ Feel free to replace these examples with whatever verifier best fits your identi
 
 3. In the Inspector UI:
    - Transport: **HTTP Streaming**
-   - URL: `http://localhost:8788`
+   - URL: `http://localhost:8788/mcp`
    - Click **Connect**. A browser window opens for Auth0’s Universal Login—sign in with a user that has access to the `user` scope.
    - After the Authorization Code + PKCE flow completes, the Inspector reconnects automatically. You can now exercise the `search`, `fetch`, and `airfare_trend_insights` tools.
 
@@ -163,18 +163,18 @@ To test with remote clients (including ChatGPT), tunnel your local port:
 ngrok http 8788
 ```
 
-Update `RESOURCE_SERVER_URL` with the HTTPS forwarding URL returned by ngrok. Re-start the server so it trusts its own externally reachable origin. Share that URL with clients connecting over HTTP streaming.
+Update `RESOURCE_SERVER_URL` with the ngrok url. Re-start the server so it trusts its own externally reachable origin. Share that URL with clients connecting over HTTP streaming.
 
 ---
 
 ## 9. Connect from ChatGPT (Dev Mode)
 
-1. Ensure your server is reachable (local + ngrok, or deployed) and protected by Auth0.
+1. Make sure that you have [ChatGPT Dev Mode](https://platform.openai.com/docs/guides/developer-mode) enabled.
 2. In ChatGPT, enter **Settings → Connectors**.
 3. Click **Create**, choose **Custom**, and supply:
    - Name (e.g., “Travel Intelligence MCP”)
-   - Endpoint URL (`RESOURCE_SERVER_URL`)
-   - Authentication: select **OAuth**. When you click **Create**, ChatGPT launches the OAuth 2.1 flow automatically; sign in with a user that has the `user` scope. If ChatGPT shows a callback URL, add it to your Auth0 application’s Allowed Callback URLs and retry.
+   - Endpoint URL (This will be your ngrok URL or production URL if your MCP server is deployed)
+   - Authentication: select **OAuth**. When you click **Create**, ChatGPT launches the OAuth 2.1 flow automatically; sign in.
 4. After the connector is created, launch Dev Mode to test it. ChatGPT reuses the stored grant and will call `search` + `fetch` automatically inside Deep Research sessions.
 
 ---
@@ -200,19 +200,10 @@ Any platform that can run a long-lived Python web process (Fly.io, Railway, AWS 
 
 - **Vector store replacement** – modify `search` and `fetch` to use a different retrieval system (e.g., Azure AI Search, Pinecone) while preserving tool signatures.
 - **CSV/Database connectors** – adapt `airfare_trend_insights` to read from S3, Snowflake, BigQuery, or internal services. Use `server/helpers.py` as a starting point for parsing and filtering logic.
-- **Add/remove tools** – register new functions with `@mcp.tool()` in `server/app.py`. Comment out the sample tools if you only want your custom endpoints exposed.
+- **Add/remove tools** – register new functions with `@mcp.tool()` in `server/app.py`. Comment out the sample tools if you only want your own endpoints exposed.
 - **Authorization** – extend `SimpleTokenVerifier` to enforce fine-grained entitlements or translate JWT claims into downstream ACL checks.
 
 The scaffold is intentionally straightforward so you can swap components without fighting the framework.
-
----
-
-## 12. Troubleshooting
-
-- **401 or 403 errors** – Confirm the bearer token was issued by `AUTH0_ISSUER`, targeted `AUTH0_AUDIENCE`, and includes the `user` scope.
-- **Empty `search` response** – The configured vector store ID has no documents or the API key lacks access. Verify via the OpenAI dashboard.
-- **CSV tool returning zero rows** – Ensure `TREND_DATA_DIR` points to valid files, or adjust filters passed to `airfare_trend_insights`.
-- **ChatGPT connector fails to reach server** – Double-check HTTPS availability. If tunneling with ngrok, keep the tunnel alive and refresh the URL in ChatGPT settings.
 
 ---
 

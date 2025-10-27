@@ -5,6 +5,7 @@ import { config } from './config.js';
 
 const jwksUri = new URL('.well-known/jwks.json', config.auth0Issuer);
 const jwks = createRemoteJWKSet(jwksUri);
+export const REQUIRED_SCOPES: string[] = [];
 
 export class AuthorizationError extends Error {
   constructor(message: string, public readonly status: number = 401) {
@@ -33,7 +34,7 @@ function extractScopes(payload: JWTPayload): string[] {
 }
 
 function ensureRequiredScopes(scopes: string[]) {
-  const missing = config.requiredScopes.filter(scope => !scopes.includes(scope));
+  const missing = REQUIRED_SCOPES.filter(scope => !scopes.includes(scope));
   if (missing.length > 0) {
     throw new AuthorizationError(`Missing required scopes: ${missing.join(', ')}`, 403);
   }
@@ -97,9 +98,10 @@ export async function verifyBearerToken(token: string): Promise<VerifiedAuthInfo
     audience: audienceOption
   });
 
-  //const scopes = extractScopes(payload);
-  const scopes = ["openid"];
-  // ensureRequiredScopes(scopes);
+  const scopes = extractScopes(payload);
+  if (REQUIRED_SCOPES.length > 0) {
+    ensureRequiredScopes(scopes);
+  }
 
   const subject = typeof payload.sub === 'string' ? payload.sub : undefined;
   const clientId =

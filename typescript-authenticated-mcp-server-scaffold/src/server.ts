@@ -4,10 +4,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/providers/proxyProvider.js';
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
-import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
 
 import { config } from './config.js';
-import { authenticateRequest, AuthorizationError, verifyBearerToken } from './auth.js';
+import { authenticateRequest, AuthorizationError, REQUIRED_SCOPES, verifyBearerToken } from './auth.js';
 import { collectTextFromContent, queryAirfareTrends } from './trends.js';
 import { getOpenAIClient } from './openaiClient.js';
 
@@ -35,23 +34,7 @@ const oauthProvider = new ProxyOAuthServerProvider({
     revocationUrl,
     registrationUrl
   },
-  verifyAccessToken: async token => verifyBearerToken(token),
-  getClient: async clientId => {
-    const client = config.allowedOAuthClients.get(clientId);
-    if (!client) {
-      return undefined;
-    }
-    const clientInfo: OAuthClientInformationFull = {
-      client_id: clientId,
-      client_name: clientId,
-      redirect_uris: client.redirectUris,
-      token_endpoint_auth_method: 'none',
-      grant_types: ['authorization_code', 'refresh_token'],
-      response_types: ['code'],
-      scope: config.requiredScopes.join(' ')
-    };
-    return clientInfo;
-  }
+  verifyAccessToken: async token => verifyBearerToken(token)
 });
 
 oauthProvider.skipLocalPkceValidation = true;
@@ -63,8 +46,7 @@ app.use(
     provider: oauthProvider,
     issuerUrl: auth0IssuerUrl,
     baseUrl: config.resourceServerUrl,
-    serviceDocumentationUrl: config.serviceDocumentationUrl,
-    scopesSupported: config.requiredScopes
+    scopesSupported: REQUIRED_SCOPES
   })
 );
 
@@ -74,7 +56,7 @@ function logAuthConfiguration() {
   console.info('[auth] token endpoint:', tokenUrl);
   console.info('[auth] revocation endpoint:', revocationUrl);
   console.info('[auth] registration endpoint:', registrationUrl);
-  console.info('[auth] allowed OAuth clients:', Array.from(config.allowedOAuthClients.keys()).join(', ') || '(none configured)');
+  console.info('[auth] required scopes:', REQUIRED_SCOPES.join(', ') || '(none)');
 }
 
 const vectorStoreId = config.vectorStoreId;
@@ -235,12 +217,6 @@ const trendInputSchema = {
   destinationAirport: z.string().describe('Exact destination airport code.').optional(),
   airlineContains: z.string().describe('Substring to match airlines.').optional(),
   seasonContains: z.string().describe('Substring to match season.').optional(),
-  minAvgFareUsd: z.number().describe('Return rows where avg_fare_usd >= value.').optional(),
-  maxAvgFareUsd: z.number().describe('Return rows where avg_fare_usd <= value.').optional(),
-  minPremiumFareUsd: z.number().describe('Return rows where premium_fare_usd >= value.').optional(),
-  minFareYoyPct: z.number().describe('Return rows where fare_yoy_pct >= value.').optional(),
-  minLoadFactorPct: z.number().describe('Return rows where load_factor_pct >= value.').optional(),
-  maxAdvancePurchaseDays: z.number().describe('Return rows where advance_purchase_days <= value.').optional(),
   notableContains: z.string().describe('Substring match against notable_event.').optional(),
   limit: z.number().int().min(1).max(200).describe('Maximum number of rows to return (default 25).').optional()
 };
@@ -270,12 +246,6 @@ server.registerTool(
         destinationAirport: input.destinationAirport ?? null,
         airlineContains: input.airlineContains ?? null,
         seasonContains: input.seasonContains ?? null,
-        minAvgFareUsd: input.minAvgFareUsd ?? null,
-        maxAvgFareUsd: input.maxAvgFareUsd ?? null,
-        minPremiumFareUsd: input.minPremiumFareUsd ?? null,
-        minFareYoyPct: input.minFareYoyPct ?? null,
-        minLoadFactorPct: input.minLoadFactorPct ?? null,
-        maxAdvancePurchaseDays: input.maxAdvancePurchaseDays ?? null,
         notableContains: input.notableContains ?? null,
         limit: input.limit ?? null
       });
