@@ -11,17 +11,14 @@ from fastapi import Request
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
-from server.token_verifiers import JWTVerifier, SimpleTokenVerifier
+from server.token_verifiers import JWTVerifier
 
 import logging
 
 from server.helpers import (
     _available_trend_files,
-    _coerce_float,
-    _coerce_int,
     _collect_text_from_content,
     _load_trend_rows,
     _parse_iso_date,
@@ -47,7 +44,7 @@ PORT = int(os.getenv("PORT", "8788"))
 logging.info(f"PORT: {PORT}")
 RESOURCE_SERVER_URL = os.getenv("RESOURCE_SERVER_URL", f"http://localhost:{PORT}/")
 logging.info(f"RESOURCE_SERVER_URL: {RESOURCE_SERVER_URL}")
-AUTH_ISSUER = os.getenv("AUTH0_ISSUER", "https://dev-65wmmp5d56ev40iy.us.auth0.com/")
+AUTH_ISSUER = os.getenv("AUTH0_ISSUER")
 logging.info(f"AUTH_ISSUER: {AUTH_ISSUER}")
 REQUIRED_SCOPES = []
 
@@ -203,12 +200,6 @@ async def airfare_trend_insights(
     destination_airport: str | None = None,
     airline_contains: str | None = None,
     season_contains: str | None = None,
-    min_avg_fare_usd: float | None = None,
-    max_avg_fare_usd: float | None = None,
-    min_premium_fare_usd: float | None = None,
-    min_fare_yoy_pct: float | None = None,
-    min_load_factor_pct: float | None = None,
-    max_advance_purchase_days: int | None = None,
     notable_contains: str | None = None,
     limit: int = 25,
 ) -> dict[str, Any]:
@@ -221,12 +212,6 @@ async def airfare_trend_insights(
         destination_airport: Exact 3-letter destination airport parsed from each route.
         airline_contains: Substring match over the airline column ("Delta", "United").
         season_contains: Substring match over the season column.
-        min_avg_fare_usd: Minimum threshold on average fare in USD (float).
-        max_avg_fare_usd: Maximum threshold on average fare in USD (float).
-        min_premium_fare_usd: Minimum premium fare in USD (float).
-        min_fare_yoy_pct: Minimum year-over-year fare change percentage (float).
-        min_load_factor_pct: Minimum load factor percentage (float).
-        max_advance_purchase_days: Maximum advance purchase window in days (int).
         notable_contains: Substring match over the notable event/driver text.
         limit: Maximum number of rows returned (1-200).
     """
@@ -249,12 +234,6 @@ async def airfare_trend_insights(
                 "destination_airport": destination_airport,
                 "airline_contains": airline_contains,
                 "season_contains": season_contains,
-                "min_avg_fare_usd": min_avg_fare_usd,
-                "max_avg_fare_usd": max_avg_fare_usd,
-                "min_premium_fare_usd": min_premium_fare_usd,
-                "min_fare_yoy_pct": min_fare_yoy_pct,
-                "min_load_factor_pct": min_load_factor_pct,
-                "max_advance_purchase_days": max_advance_purchase_days,
                 "notable_contains": notable_contains,
                 "limit": limit,
             },
@@ -270,12 +249,6 @@ async def airfare_trend_insights(
     destination_filter = (destination_airport or "").lower()
     airline_filter = (airline_contains or "").lower()
     season_filter = (season_contains or "").lower()
-    min_avg_fare = _coerce_float(min_avg_fare_usd)
-    max_avg_fare = _coerce_float(max_avg_fare_usd)
-    min_premium_fare = _coerce_float(min_premium_fare_usd)
-    min_fare_yoy = _coerce_float(min_fare_yoy_pct)
-    min_load_factor = _coerce_float(min_load_factor_pct)
-    parsed_max_advance = _coerce_int(max_advance_purchase_days)
     notable_filter = (notable_contains or "").lower()
 
     filtered_rows: list[dict[str, Any]] = []
@@ -292,23 +265,6 @@ async def airfare_trend_insights(
         if airline_filter and airline_filter not in (row.get("airline") or "").lower():
             continue
         if season_filter and season_filter not in (row.get("season") or "").lower():
-            continue
-        avg_fare_value = row.get("avg_fare_usd")
-        if min_avg_fare is not None and (avg_fare_value is None or avg_fare_value < min_avg_fare):
-            continue
-        if max_avg_fare is not None and (avg_fare_value is None or avg_fare_value > max_avg_fare):
-            continue
-        premium_fare_value = row.get("premium_fare_usd")
-        if min_premium_fare is not None and (premium_fare_value is None or premium_fare_value < min_premium_fare):
-            continue
-        fare_yoy_value = row.get("fare_yoy_pct")
-        if min_fare_yoy is not None and (fare_yoy_value is None or fare_yoy_value < min_fare_yoy):
-            continue
-        load_factor_value = row.get("load_factor_pct")
-        if min_load_factor is not None and (load_factor_value is None or load_factor_value < min_load_factor):
-            continue
-        advance_purchase_value = row.get("advance_purchase_days")
-        if parsed_max_advance is not None and (advance_purchase_value is None or advance_purchase_value > parsed_max_advance):
             continue
         if notable_filter and notable_filter not in (row.get("notable_event") or "").lower():
             continue
@@ -340,12 +296,6 @@ async def airfare_trend_insights(
             "destination_airport": destination_airport,
             "airline_contains": airline_contains,
             "season_contains": season_contains,
-            "min_avg_fare_usd": min_avg_fare_usd,
-            "max_avg_fare_usd": max_avg_fare_usd,
-            "min_premium_fare_usd": min_premium_fare_usd,
-            "min_fare_yoy_pct": min_fare_yoy_pct,
-            "min_load_factor_pct": min_load_factor_pct,
-            "max_advance_purchase_days": max_advance_purchase_days,
             "notable_contains": notable_contains,
             "limit": applied_limit,
         },
@@ -353,7 +303,6 @@ async def airfare_trend_insights(
         "rows_returned": len(limited_rows),
         "trend_data_dir": str(TREND_DATA_DIR),
     }
-
 
 app = mcp.streamable_http_app()
 
@@ -371,5 +320,3 @@ async def log_authorization_header(request: Request, call_next):
 if __name__ == "__main__":
     import os, uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8788")))
-
-    # mcp.run(transport="http", port=int(os.getenv("PORT", "8788")))

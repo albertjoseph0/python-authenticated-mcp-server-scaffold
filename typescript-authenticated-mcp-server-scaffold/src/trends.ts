@@ -11,12 +11,6 @@ export interface AirfareTrendFilters {
   destinationAirport?: string | null;
   airlineContains?: string | null;
   seasonContains?: string | null;
-  minAvgFareUsd?: number | null;
-  maxAvgFareUsd?: number | null;
-  minPremiumFareUsd?: number | null;
-  minFareYoyPct?: number | null;
-  minLoadFactorPct?: number | null;
-  maxAdvancePurchaseDays?: number | null;
   notableContains?: string | null;
   limit?: number | null;
 }
@@ -401,13 +395,6 @@ export async function queryAirfareTrends(trendDataDir: string, filters: AirfareT
   const seasonFilter = (filters.seasonContains ?? '').trim().toLowerCase();
   const notableFilter = (filters.notableContains ?? '').trim().toLowerCase();
 
-  const minAvgFare = filters.minAvgFareUsd ?? undefined;
-  const maxAvgFare = filters.maxAvgFareUsd ?? undefined;
-  const minPremiumFare = filters.minPremiumFareUsd ?? undefined;
-  const minFareYoy = filters.minFareYoyPct ?? undefined;
-  const minLoadFactor = filters.minLoadFactorPct ?? undefined;
-  const maxAdvancePurchase = filters.maxAdvancePurchaseDays ?? undefined;
-
   const filtered = rows.filter(row => {
     const snapshotDateValue = typeof row['snapshot_date'] === 'string' ? row['snapshot_date'] as string : undefined;
     const parsedSnapshot = parseIsoDate(snapshotDateValue);
@@ -447,36 +434,6 @@ export async function queryAirfareTrends(trendDataDir: string, filters: AirfareT
       if (!season.includes(seasonFilter)) {
         return false;
       }
-    }
-
-    const avgFare = typeof row['avg_fare_usd'] === 'number' ? (row['avg_fare_usd'] as number) : coerceFloat(row['avg_fare_usd']);
-    if (minAvgFare !== undefined && (avgFare === undefined || avgFare < minAvgFare)) {
-      return false;
-    }
-    if (maxAvgFare !== undefined && (avgFare === undefined || avgFare > maxAvgFare)) {
-      return false;
-    }
-
-    const premiumFare = typeof row['premium_fare_usd'] === 'number' ? (row['premium_fare_usd'] as number) : coerceFloat(row['premium_fare_usd']);
-    if (minPremiumFare !== undefined && (premiumFare === undefined || premiumFare < minPremiumFare)) {
-      return false;
-    }
-
-    const fareYoy = typeof row['fare_yoy_pct'] === 'number' ? (row['fare_yoy_pct'] as number) : coerceFloat(row['fare_yoy_pct']);
-    if (minFareYoy !== undefined && (fareYoy === undefined || fareYoy < minFareYoy)) {
-      return false;
-    }
-
-    const loadFactor = typeof row['load_factor_pct'] === 'number' ? (row['load_factor_pct'] as number) : coerceFloat(row['load_factor_pct']);
-    if (minLoadFactor !== undefined && (loadFactor === undefined || loadFactor < minLoadFactor)) {
-      return false;
-    }
-
-    const advancePurchase = typeof row['advance_purchase_days'] === 'number'
-      ? (row['advance_purchase_days'] as number)
-      : coerceInt(row['advance_purchase_days']);
-    if (maxAdvancePurchase !== undefined && (advancePurchase === undefined || advancePurchase > maxAdvancePurchase)) {
-      return false;
     }
 
     if (notableFilter) {
@@ -520,12 +477,6 @@ export async function queryAirfareTrends(trendDataDir: string, filters: AirfareT
       destination_airport: filters.destinationAirport ?? null,
       airline_contains: filters.airlineContains ?? null,
       season_contains: filters.seasonContains ?? null,
-      min_avg_fare_usd: filters.minAvgFareUsd ?? null,
-      max_avg_fare_usd: filters.maxAvgFareUsd ?? null,
-      min_premium_fare_usd: filters.minPremiumFareUsd ?? null,
-      min_fare_yoy_pct: filters.minFareYoyPct ?? null,
-      min_load_factor_pct: filters.minLoadFactorPct ?? null,
-      max_advance_purchase_days: filters.maxAdvancePurchaseDays ?? null,
       notable_contains: filters.notableContains ?? null,
       limit
     },
