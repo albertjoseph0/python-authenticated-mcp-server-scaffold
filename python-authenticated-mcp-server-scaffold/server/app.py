@@ -46,7 +46,7 @@ RESOURCE_SERVER_URL = os.getenv("RESOURCE_SERVER_URL", f"http://localhost:{PORT}
 logging.info(f"RESOURCE_SERVER_URL: {RESOURCE_SERVER_URL}")
 AUTH_ISSUER = os.getenv("AUTH0_ISSUER")
 logging.info(f"AUTH_ISSUER: {AUTH_ISSUER}")
-REQUIRED_SCOPES = []
+REQUIRED_SCOPES = ["openid", "profile", "email"]
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID")

@@ -130,6 +130,8 @@ Authenticated MCP servers must supply a `TokenVerifier` implementation. To do th
 - Decode RS256 tokens using [PyJWT](https://pyjwt.readthedocs.io/en/stable/) and enforce issuer/audience checks (configure audiences via `JWT_AUDIENCES` in `.env`)
 - Run custom business logic inside `_is_subject_allowed`—that is where you might call OpenID user-info, a permissions service, or your own database to confirm the authenticated identity has access
 
+**Note that you need to modify `JWTVerifier` to be production-ready! Do not use as is!**
+
 If you use Auth0, enable a **default audience** for your tenant (per [this community post](https://community.auth0.com/t/rfc-8707-implementation-audience-vs-resource/188990/4)) so that Auth0 issues an unencrypted RS256 JWT. Without that setting Auth0 returns encrypted (JWE) access tokens that cannot be validated locally.
 
 Some providers (e.g., Okta) expose [RFC 7662 token introspection endpoints](https://developer.okta.com/docs/reference/api/oidc/#introspect-oauth-2-0-access-tokens). In that model your `TokenVerifier` can simply forward the bearer token to the introspection endpoint and trust the response rather than parsing the JWT locally—the scaffold’s `IntrospectionTokenVerifier` shows the rough shape.
@@ -144,13 +146,13 @@ Feel free to replace these examples with whatever verifier best fits your identi
 2. Launch the inspector:
 
    ```bash
-   npx @modelcontextprotocol/inspector@latest
+   npx @modelcontextprotocol/inspector@0.16.7
    ```
 
 3. In the Inspector UI:
    - Transport: **HTTP Streaming**
    - URL: `http://localhost:8788/mcp`
-   - Click **Connect**. A browser window opens for Auth0’s Universal Login—sign in with a user that has access to the `user` scope.
+   - Click **Connect**. A browser window opens for Auth0’s Universal Login—sign in.
    - After the Authorization Code + PKCE flow completes, the Inspector reconnects automatically. You can now exercise the `search`, `fetch`, and `airfare_trend_insights` tools.
 
 ---
@@ -173,28 +175,20 @@ Update `RESOURCE_SERVER_URL` with the ngrok url. Re-start the server so it trust
 2. In ChatGPT, enter **Settings → Connectors**.
 3. Click **Create**, choose **Custom**, and supply:
    - Name (e.g., “Travel Intelligence MCP”)
-   - Endpoint URL (This will be your ngrok URL or production URL if your MCP server is deployed)
+   - Endpoint URL (This will be your ngrok URL (with "/mcp" appended) or production URL if your MCP server is deployed)
    - Authentication: select **OAuth**. When you click **Create**, ChatGPT launches the OAuth 2.1 flow automatically; sign in.
 4. After the connector is created, launch Dev Mode to test it. ChatGPT reuses the stored grant and will call `search` + `fetch` automatically inside Deep Research sessions.
 
 ---
 
-## 10. Deploying to Render (or similar)
+## 10. Deploying the MCP server
 
-1. Create a new **Web Service** in Render pointing at this directory.
-2. Set the start command:
+Once you are ready, deploy your MCP server on your cloud hosting service of choice. Some good options are:
 
-   ```
-   python -m uvicorn server.app:app --host 0.0.0.0 --port $PORT
-   ```
+- [Render](https://render.com/)
+- [Cloudflare](https://www.cloudflare.com/)
+- [Vercel](https://vercel.com)
 
-3. Add the environment variables from §3 in Render’s dashboard. Render automatically injects `$PORT`.
-4. Use a managed secret to store sensitive values (`OPENAI_API_KEY`, Auth0 credentials).
-5. Point `RESOURCE_SERVER_URL` at the Render-generated domain. Redeploy if you later attach a custom domain.
-
-Any platform that can run a long-lived Python web process (Fly.io, Railway, AWS ECS/Fargate, etc.) works the same way.
-
----
 
 ## 11. Customize for your own data sources
 

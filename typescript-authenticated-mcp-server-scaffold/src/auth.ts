@@ -5,7 +5,7 @@ import { config } from './config.js';
 
 const jwksUri = new URL('.well-known/jwks.json', config.auth0Issuer);
 const jwks = createRemoteJWKSet(jwksUri);
-export const REQUIRED_SCOPES: string[] = [];
+export const REQUIRED_SCOPES: string[] = ["openid", "profile", "email"];
 
 export class AuthorizationError extends Error {
   constructor(message: string, public readonly status: number = 401) {
