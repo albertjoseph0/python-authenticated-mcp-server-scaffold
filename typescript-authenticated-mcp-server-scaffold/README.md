@@ -133,7 +133,7 @@ Some providers (e.g., Okta) expose [RFC 7662 token introspection endpoints](ht
 2. Launch the inspector:
 
    ```bash
-   npx @modelcontextprotocol/inspector@latest
+   npx @modelcontextprotocol/inspector@0.16.7
    ```
 
 3. In the Inspector UI:
@@ -170,18 +170,13 @@ Update `RESOURCE_SERVER_URL` with the ngrok url. Re-start the server so it trust
 
 ## 10. Deploying to Render (or similar)
 
-1. Create a new **Web Service** in Render pointing at this directory.
-2. Set the start command:
+Once you are ready, deploy your MCP server on your cloud hosting service of choice. Some good options are:
 
-   ```
-   npm run start
-   ```
+- [Render](https://render.com/)
+- [Cloudflare](https://www.cloudflare.com/)
+- [Vercel](https://vercel.com)
 
-3. Add the environment variables from §3 in Render’s dashboard.
-4. Use a managed secret to store sensitive values (`OPENAI_API_KEY`, Auth0 credentials).
-5. Point `RESOURCE_SERVER_URL` at the Render-generated domain. Redeploy if you later attach a custom domain.
-
-Any platform that can run a long-lived Node.js web process (Fly.io, Railway, AWS ECS/Fargate, etc.) works the same way.
+Don't forget to set the environment variables in these hosting platform dashboards and then point the `RESOURCE_SERVER_URL` at the deployed url (with the `/mcp` suffix).
 
 ---
 
