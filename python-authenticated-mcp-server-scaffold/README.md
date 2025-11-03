@@ -121,7 +121,7 @@ Authenticated MCP servers must supply a `TokenVerifier` implementation. To do th
 - Decode RS256 tokens using [PyJWT](https://pyjwt.readthedocs.io/en/stable/) and enforce issuer/audience checks (configure audiences via `JWT_AUDIENCES` in `.env`)
 - Run custom business logic inside `_is_subject_allowed`—that is where you might call OpenID user-info, a permissions service, or your own database to confirm the authenticated identity has access
 
-**Note that you need to modify `JWTVerifier` to be production-ready! Do not use as is!**
+**Note that the provided implementation of `JWTVerifier` does not contain entitlements, you must add your own entitlements.**
 
 If you use Auth0, enable a **default audience** for your tenant (per [this community post](https://community.auth0.com/t/rfc-8707-implementation-audience-vs-resource/188990/4)) so that Auth0 issues an unencrypted RS256 JWT. Without that setting Auth0 returns encrypted (JWE) access tokens that cannot be validated locally.
 
