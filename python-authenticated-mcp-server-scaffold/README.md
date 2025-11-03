@@ -75,17 +75,6 @@ RESOURCE_SERVER_URL=
 JWT_AUDIENCES=
 ```
 
-### Additional settings (production deployment)
-
-```
-# Where your deployed server is reachable
-RESOURCE_SERVER_URL=https://your-public-domain.example.com
-
-# Optional overrides if using different storage directories
-TREND_DATA_DIR=/app/data/web_search_trends
-EXPERT_CALLS_DIR=/app/data/expert_calls
-```
-
 Set these variables with your hosting provider (Render, Fly.io, etc.).
 
 ---
