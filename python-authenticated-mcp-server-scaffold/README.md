@@ -23,8 +23,8 @@ You can swap these example data sources for your own by updating the tool implem
 ## 1. Install & bootstrap
 
 ```bash
-git clone https://github.com/openai/mcpkit
-cd mcpkit/python-authenticated-mcp-server-scaffold
+git clone https://github.com/openai/openai-mcpkit
+cd openai-mcpkit/python-authenticated-mcp-server-scaffold
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
