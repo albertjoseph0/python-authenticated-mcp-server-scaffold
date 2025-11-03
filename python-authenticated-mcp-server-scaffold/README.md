@@ -25,7 +25,7 @@ You can swap these example data sources for your own by updating the tool implem
 ```bash
 git clone https://github.com/openai/openai-mcpkit
 cd openai-mcpkit/python-authenticated-mcp-server-scaffold
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 All configuration is driven by environment variables. Copy the sample file and fill in your values:
 
 ```bash
-cp .env.example .env
+cp env.example .env
 ```
 
 ### Required values (local development)
@@ -81,10 +81,9 @@ Set these variables with your hosting provider (Render, Fly.io, etc.).
 
 ## 4. Run the server
 
-Activate your virtual environment, then launch the MCP server using Python’s module runner:
+Launch the MCP server using Python’s module runner:
 
 ```bash
-source .venv/bin/activate
 python -m server.app
 ```
 
