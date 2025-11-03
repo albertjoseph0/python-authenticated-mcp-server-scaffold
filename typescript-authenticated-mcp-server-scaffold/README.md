@@ -23,8 +23,8 @@ You can swap these example data sources for your own by updating the tool implem
 ## 1. Install & bootstrap
 
 ```bash
-git clone https://github.com/openai/mcpkit
-cd mcpkit/typescript-authenticated-mcp-server-scaffold
+git clone https://github.com/openai/openai-mcpkit
+cd openai-mcpkit/typescript-authenticated-mcp-server-scaffold
 npm install
 ```
 
@@ -42,13 +42,16 @@ npm install
 
 2. **Enable a default audience for your tenant** (per [this community post](https://community.auth0.com/t/rfc-8707-implementation-audience-vs-resource/188990/4)) so that Auth0 issues an unencrypted RS256 JWT.
    - Tenant settings > Default Audience > Add the API identifier you created in step 1.
+  
+3. **Enable Dynamic Client Registration**
+   - Go to Dashboard > Settings > Advanced and enable the [OIDC Dynamic Application Registration](https://auth0.com/docs/get-started/applications/dynamic-client-registration?tenant=openai-mcpkit-trial%40prod-us-5&locale=en-us).
 
-3. **Add a social connection to the tenant** for example Google oauth2 to provide a social login mechanism for uers.
+4. **Add a social connection to the tenant** for example Google oauth2 to provide a social login mechanism for uers.
    - Authentication > Social > google-oauth2 > Advanced > Promote Connection to Domain Level
 
-3. **Update your environment variables**  
+5. **Update your environment variables**  
    - `AUTH0_ISSUER`:  your tenant domain (e.g., `https://dev-your-tenant.us.auth0.com/`)
-   - `JWT_AUDIENCES`: API identifider created in step 1 (e.g. `https://mcpkit.com/mcp`)
+   - `JWT_AUDIENCES`: API identifider created in step 1 (e.g. `https://your-domain.example.com/mcp`)
 
 ---
 
@@ -57,7 +60,7 @@ npm install
 All configuration is driven by environment variables. Copy the sample file and fill in your values:
 
 ```bash
-cp .env.example .env
+cp env.example .env
 ```
 
 ### Required values (local development)
@@ -75,12 +78,13 @@ JWT_AUDIENCES=
 
 ### Additional settings (production deployment)
 
+Once you have deployed the MCP server to a public URL (whether via a tunneling service like ngrok or on a hosting platform, you will need to replace the `RESOURCE_SERVER_URL` with that url.
+
 ```
-# Where your deployed server is reachable
 RESOURCE_SERVER_URL=https://your-public-domain.example.com
 ```
 
-Set these variables with your hosting provider (Render, Fly.io, etc.).
+Make sure to set these environment variables in your hosting provider's dashboard (Render, Fly.io, etc.).
 
 The airfare trend tool reads from `synthetic_financial_data/web_search_trends` by default. Update `src/config.ts` if you move or replace the sample data.
 
