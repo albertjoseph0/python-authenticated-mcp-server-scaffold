@@ -60,7 +60,7 @@ npm install
 All configuration is driven by environment variables. Copy the sample file and fill in your values:
 
 ```bash
-cp env.example .env
+cp .env.example .env
 ```
 
 ### Required values (local development)
