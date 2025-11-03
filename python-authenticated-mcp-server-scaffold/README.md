@@ -4,7 +4,7 @@ This is a reference implementation of an authenticated [Model Context Protocol (
 
 The scaffold includes two families of tools you can use as-is or replace with custom integrations:
 
-- **Vector Store Transcript Tools (`search`, `fetch`)** – retrieve documents (in our example, travel-industry expert-call transcripts) from an OpenAI Vector Store. These two tools satisfy the requirements for ChatGPT’s Deep Research workflow.
+- **Vector Store Transcript Tools (`search`, `fetch`)** – retrieve documents (in our example, travel-industry expert-call transcripts) from an OpenAI Vector Store. These two tools satisfy the requirements for ChatGPT’s Deep Research workflow. **Note that to use this tool, you will need to take the sample expert-call data provided and index it into a vector store in your own OpenAI API workspace.**
 - **Airfare Trend Tool (`airfare_trend_insights`)** – surface structured airfare pricing and demand data backed by local CSV/TSV/JSON files.
 
 You can swap these example data sources for your own by updating the tool implementations in `server/app.py`.
@@ -44,11 +44,14 @@ pip install -r requirements.txt
 
 2. **Enable a default audience for your tenant** (per [this community post](https://community.auth0.com/t/rfc-8707-implementation-audience-vs-resource/188990/4)) so that Auth0 issues an unencrypted RS256 JWT.
    - Tenant settings > Default Audience > Add the API identifier you created in step 1.
+  
+3. **Enable Dynamic Client Registration**
+   - Go to Dashboard > Settings > Advanced and enable the [OIDC Dynamic Application Registration](https://auth0.com/docs/get-started/applications/dynamic-client-registration?tenant=openai-mcpkit-trial%40prod-us-5&locale=en-us).
 
-3. **Add a social connection to the tenant** for example Google oauth2 to provide a social login mechanism for uers.
+4. **Add a social connection to the tenant** for example Google oauth2 to provide a social login mechanism for uers.
    - Authentication > Social > google-oauth2 > Advanced > Promote Connection to Domain Level
 
-3. **Update your environment variables**  
+5. **Update your environment variables**  
    - `AUTH0_ISSUER`:  your tenant domain (e.g., `https://dev-your-tenant.us.auth0.com/`)
    - `JWT_AUDIENCES`: API identifider created in step 1 (e.g. `https://your-domain.example.com/mcp`)
 
