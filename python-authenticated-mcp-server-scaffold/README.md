@@ -50,7 +50,7 @@ pip install -r requirements.txt
 
 3. **Update your environment variables**  
    - `AUTH0_ISSUER`:  your tenant domain (e.g., `https://dev-your-tenant.us.auth0.com/`)
-   - `JWT_AUDIENCES`: API identifider created in step 1 (e.g. `https://mcpkit.com/mcp`)
+   - `JWT_AUDIENCES`: API identifider created in step 1 (e.g. `https://your-domain.example.com/mcp`)
 
 ---
 
