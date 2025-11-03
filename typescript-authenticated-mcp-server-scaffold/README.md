@@ -4,7 +4,7 @@ This is a reference implementation of an authenticated [Model Context Protocol (
 
 The scaffold includes two families of tools you can use as-is or replace with custom integrations:
 
-- **Vector Store Transcript Tools (`search`, `fetch`)** – retrieve documents (in our example, travel-industry expert-call transcripts) from an OpenAI Vector Store. These two tools satisfy the requirements for ChatGPT’s Deep Research workflow.
+- **Vector Store Transcript Tools (`search`, `fetch`)** – retrieve documents (in our example, travel-industry expert-call transcripts) from an OpenAI Vector Store. These two tools satisfy the requirements for ChatGPT’s Deep Research workflow. Run `python scripts/upload_expert_calls_to_vector_store.py` from the repository root to create a vector store in your OpenAI workspace using the bundled transcripts and capture the printed `VECTOR_STORE_ID` for your environment.
 - **Airfare Trend Tool (`airfare_trend_insights`)** – surface structured airfare pricing and demand data backed by local CSV/TSV/JSON files.
 
 You can swap these example data sources for your own by updating the tool implementations in `src/server.ts`.
@@ -62,6 +62,16 @@ All configuration is driven by environment variables. Copy the sample file and f
 ```bash
 cp .env.example .env
 ```
+
+### Populate the vector store
+
+From the repository root, run the helper script to create a vector store backed by the bundled expert-call transcripts:
+
+```bash
+python scripts/upload_expert_calls_to_vector_store.py
+```
+
+The script prints `VECTOR_STORE_ID=...`. Copy that value into your `.env` (or hosting provider configuration) so the server can access the populated vector store.
 
 ### Required values (local development)
 
